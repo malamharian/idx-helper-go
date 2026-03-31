@@ -14,3 +14,20 @@ to this in your browser, and you can call your Go code from devtools.
 ## Building
 
 To build a redistributable, production mode package, use `wails build`.
+
+## CI Builds
+
+GitHub Actions builds the desktop app on `windows-latest` and `macos-latest` with `.github/workflows/build.yml`.
+It runs on pushes to `main`, pull requests, and manual dispatches, then uploads the `build/bin` outputs as workflow artifacts.
+
+## Releases
+
+GitHub Actions publishes a GitHub Release with `.github/workflows/release.yml` whenever you push a tag matching `v*`.
+The workflow builds Windows and macOS artifacts, creates the release, and attaches the packaged files.
+
+Example:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```

@@ -56,7 +56,7 @@ func fetchReports(client *http.Client, year, period, ua string, onProgress func(
 	var all []ReportResult
 	for page := 1; ; page++ {
 		indexFrom := (page-1)*fetchPageSize + 1
-		results, err := fetchReportsPage(client, year, apiPeriod, indexFrom, ua)
+		results, err := fetchReportsPage(client, year, apiPeriod, indexFrom, ua, onProgress)
 		if err != nil {
 			logf("Page %d (indexFrom=%d): error — %v", page, indexFrom, err)
 			return nil, err
@@ -72,7 +72,7 @@ func fetchReports(client *http.Client, year, period, ua string, onProgress func(
 	return all, nil
 }
 
-func fetchReportsPage(client *http.Client, year, apiPeriod string, indexFrom int, ua string) ([]ReportResult, error) {
+func fetchReportsPage(client *http.Client, year, apiPeriod string, indexFrom int, ua string, onProgress func(string)) ([]ReportResult, error) {
 	params := url.Values{
 		"indexFrom":  {fmt.Sprintf("%d", indexFrom)},
 		"pageSize":   {fmt.Sprintf("%d", fetchPageSize)},
@@ -128,10 +128,22 @@ func fetchReportsPage(client *http.Client, year, apiPeriod string, indexFrom int
 		if err := json.Unmarshal(body, &apiResp); err != nil {
 			return nil, fmt.Errorf("parsing JSON: %w", err)
 		}
+
+		if indexFrom == 1 && len(apiResp.Results) == 0 && onProgress != nil {
+			onProgress(fmt.Sprintf("DEBUG: HTTP 200 but empty results. Body preview: %s", truncateBodyForLog(body, 1200)))
+		}
 		return apiResp.Results, nil
 	}
 
 	return nil, fmt.Errorf("failed after 3 attempts: %w", lastErr)
+}
+
+func truncateBodyForLog(body []byte, max int) string {
+	s := strings.TrimSpace(string(body))
+	if len(s) <= max {
+		return s
+	}
+	return s[:max] + fmt.Sprintf("... (%d more bytes)", len(s)-max)
 }
 
 func downloadFile(

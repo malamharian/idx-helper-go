@@ -15,8 +15,8 @@ import (
 
 const (
 	warmupURL     = "https://idx.co.id"
-	warmupTimeout = 45 * time.Second
-	challengeWait = 30 * time.Second
+	warmupTimeout = 2 * time.Minute
+	challengeWait = 90 * time.Second
 )
 
 // warmupCookies launches a headless Chrome via rod+stealth, navigates to the
@@ -71,10 +71,12 @@ func warmupCookies(onLog func(string)) (*WarmupResult, error) {
 
 	deadline := time.Now().Add(challengeWait)
 	resolved := false
+	lastTitle := ""
 	for time.Now().Before(deadline) {
 		title, err := page.Eval(`() => document.title`)
 		if err == nil {
 			t := title.Value.Str()
+			lastTitle = t
 			if t != "" && t != "Just a moment..." {
 				if onLog != nil {
 					onLog(fmt.Sprintf("Challenge resolved (page: %s)", t))
@@ -87,7 +89,7 @@ func warmupCookies(onLog func(string)) (*WarmupResult, error) {
 	}
 
 	if !resolved {
-		return nil, fmt.Errorf("Cloudflare challenge did not resolve within %s", challengeWait)
+		return nil, fmt.Errorf("Cloudflare challenge did not resolve within %s (last title: %q)", challengeWait, lastTitle)
 	}
 
 	time.Sleep(1 * time.Second)
